@@ -32,5 +32,7 @@
 2. `Deploy from a branch` を選択し、`main` ブランチの `/public` を指定する。
 3. 公開URLをAndroid端末の対応ブラウザで開く。
 
+> https://yugeta.github.io/nfc_investigation/public/
+
 注記:
 - Web NFCはセキュアコンテキストが必要。GitHub PagesのHTTPS配信で要件を満たせる。
