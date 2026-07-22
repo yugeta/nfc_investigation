@@ -81,7 +81,22 @@
 - ログが残らない:
   - ブラウザのストレージ削除設定、プライベートモード利用有無を確認する。
 
-## 10. 参考
+## 10. 読み取り情報の粒度（Web NFCの制約）
+Web NFCで取得できる主な情報:
+- serialNumber（端末/ブラウザにより取得不可の場合あり）
+- recordType、id、mediaType、encoding、lang
+- レコードのバイト長、hexプレビュー、base64プレビュー
+- テキスト化可能な値（text/url/mimeの一部）
+
+Web NFCで取得しにくい情報:
+- 低レベルのタグ技術詳細（専用アプリが表示する詳細情報の一部）
+- セキュア領域情報やベンダー固有の管理情報
+- APDUベースの詳細応答
+
+注記:
+- NFC Tools等の専用アプリは、Web NFCより低レベル層へアクセスできるため、取得粒度が高い場合がある。
+
+## 11. 参考
 - 開発手順: docs/03-poc/development-procedure.md
 - 検証マトリクス: docs/01-planning/platform-card-test-matrix.md
 - 検証チェック: docs/04-validation/validation-checklist.md

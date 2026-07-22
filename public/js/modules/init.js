@@ -35,6 +35,7 @@ export class Init {
     this.nfcController = NfcController.getInstance();
 
     this.isCompatible = false;
+    this.compatibilityMessage = "";
     this.isScanning = false;
     this.isWriting = false;
     this.lastReadSnapshot = null;
@@ -73,14 +74,29 @@ export class Init {
     this.ui.statusNdefApi.textContent = `Web NFC API: ${result.hasNdefReader ? "OK" : "NG"}`;
 
     this.isCompatible = result.ok;
+    this.compatibilityMessage = result.message || "";
     if (!result.ok) {
       this.ui.compatibilityError.hidden = false;
-      this.ui.compatibilityError.textContent = result.message;
+      this.ui.compatibilityError.textContent = `${result.message} (secure=${result.isSecure}, ndefApi=${result.hasNdefReader})`;
       return;
     }
 
     this.ui.compatibilityError.hidden = true;
     this.ui.compatibilityError.textContent = "";
+  }
+
+  ensureCompatibilityFor(targetElement) {
+    this.applyCompatibility();
+    this.renderNfcState();
+
+    if (this.isCompatible) {
+      return true;
+    }
+
+    if (targetElement) {
+      targetElement.textContent = this.compatibilityMessage || "この環境ではWeb NFCが利用できません。";
+    }
+    return false;
   }
 
   renderNfcState() {
@@ -142,8 +158,7 @@ export class Init {
   }
 
   async handleScanToggle() {
-    if (!this.isCompatible) {
-      this.ui.readResult.textContent = "このブラウザはWeb NFCに未対応です。";
+    if (!this.ensureCompatibilityFor(this.ui.readResult)) {
       return;
     }
 
@@ -175,8 +190,7 @@ export class Init {
   }
 
   async handleWrite() {
-    if (!this.isCompatible) {
-      this.ui.writeResult.textContent = "このブラウザはWeb NFCに未対応です。";
+    if (!this.ensureCompatibilityFor(this.ui.writeResult)) {
       return;
     }
 

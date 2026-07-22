@@ -2,8 +2,34 @@ export function nowIso() {
   return new Date().toISOString();
 }
 
-function decodeDataView(dataView, encoding = "utf-8") {
-  const bytes = dataView.buffer.slice(dataView.byteOffset, dataView.byteOffset + dataView.byteLength);
+function toUint8Array(data) {
+  if (data instanceof DataView) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return new Uint8Array(data);
+  }
+
+  return null;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+function decodeBytes(bytes, encoding = "utf-8") {
   return new TextDecoder(encoding).decode(bytes);
 }
 
@@ -14,41 +40,72 @@ function decodeRecordValue(record) {
     return data;
   }
 
-  if (data instanceof DataView) {
-    return decodeDataView(data, record.encoding || "utf-8");
-  }
-
-  if (data instanceof ArrayBuffer) {
-    return new TextDecoder(record.encoding || "utf-8").decode(data);
+  const bytes = toUint8Array(data);
+  if (bytes) {
+    return decodeBytes(bytes, record.encoding || "utf-8");
   }
 
   return "";
 }
 
 export function parseRecord(record) {
+  const bytes = toUint8Array(record.data);
+  const byteLength = bytes ? bytes.byteLength : 0;
+  const hexPreview = bytes ? bytesToHex(bytes.slice(0, 48)) : "";
+
+  const base = {
+    type: record.recordType,
+    id: record.id || "",
+    mediaType: record.mediaType || "",
+    encoding: record.encoding || "",
+    lang: record.lang || "",
+    byteLength,
+    hexPreview
+  };
+
   if (record.recordType === "text") {
+    const value = decodeRecordValue(record);
     return {
+      ...base,
       type: "text",
-      value: decodeRecordValue(record),
-      lang: record.lang || "",
-      encoding: record.encoding || "utf-8"
+      value
     };
   }
 
   if (record.recordType === "url") {
-    return { type: "url", value: decodeRecordValue(record) };
+    const value = decodeRecordValue(record);
+    return {
+      ...base,
+      type: "url",
+      value
+    };
   }
 
   if (record.recordType === "mime") {
     const isTextLike = typeof record.mediaType === "string" && record.mediaType.startsWith("text/");
+    const value = isTextLike ? decodeRecordValue(record) : "(binary or custom payload)";
     return {
+      ...base,
       type: `mime:${record.mediaType}`,
-      value: isTextLike ? decodeRecordValue(record) : "(binary or custom payload)",
-      byteLength: record.data?.byteLength || 0
+      value,
+      base64Preview: bytes ? bytesToBase64(bytes.slice(0, 48)) : ""
     };
   }
 
-  return { type: record.recordType, value: "(unsupported preview)" };
+  let fallbackText = "";
+  if (bytes) {
+    try {
+      fallbackText = decodeBytes(bytes, "utf-8");
+    } catch (_) {
+      fallbackText = "";
+    }
+  }
+
+  return {
+    ...base,
+    value: fallbackText || "(unsupported preview)",
+    base64Preview: bytes ? bytesToBase64(bytes.slice(0, 48)) : ""
+  };
 }
 
 export function parseReadingEvent(event) {
@@ -61,6 +118,8 @@ export function parseReadingEvent(event) {
 
   return {
     serialNumber,
+    serialAvailable: !!event.serialNumber,
+    recordCount: records.length,
     records,
     readAt: nowIso()
   };
