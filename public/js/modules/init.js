@@ -222,11 +222,12 @@ export class Init {
     }
 
     const records = [];
-    if (text) {
-      records.push({ recordType: "text", data: text });
-    }
+    // Prefer URI first because some Android devices only auto-launch when URL is the first record.
     if (uri) {
       records.push({ recordType: "url", data: uri });
+    }
+    if (text) {
+      records.push({ recordType: "text", data: text });
     }
 
     try {
