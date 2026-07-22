@@ -7,6 +7,8 @@
   - 研究開発の全体準備計画、スコープ、技術判断ゲート
 - 01-planning/platform-card-test-matrix.md
   - できること/できないこと、媒体別の検証可否
+- 01-planning/nfc-tag-characteristics.md
+  - NFCタグの特性、書込可否、ロック、代替運用方針の共有資料
 
 ## 02-design（方式設計）
 - 02-design/android-nfc-system-design.md

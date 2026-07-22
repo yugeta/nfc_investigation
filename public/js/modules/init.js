@@ -8,6 +8,12 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function extractComparableValues(records) {
+  return records
+    .map((record) => normalizeText(record.value))
+    .filter((value) => value.length > 0);
+}
+
 export class Init {
   static instance;
 
@@ -27,6 +33,7 @@ export class Init {
     this.isCompatible = false;
     this.isScanning = false;
     this.isWriting = false;
+    this.lastReadSnapshot = null;
   }
 
   init() {
@@ -111,6 +118,15 @@ export class Init {
     this.renderLogSummary(logs);
   }
 
+  updateLastReadSnapshot(source, readResult) {
+    this.lastReadSnapshot = {
+      source,
+      serialNumber: readResult.serialNumber,
+      records: readResult.records,
+      at: readResult.readAt || new Date().toISOString()
+    };
+  }
+
   stopScan() {
     this.nfcController.stopScan();
     this.isScanning = false;
@@ -133,6 +149,7 @@ export class Init {
       await this.nfcController.startScan(
         (result) => {
           this.ui.readResult.textContent = JSON.stringify(result, null, 2);
+          this.updateLastReadSnapshot("read", result);
           this.appendLog("read", result);
         },
         (error) => {
@@ -174,6 +191,7 @@ export class Init {
       this.isWriting = true;
       this.renderNfcState();
       this.ui.writeResult.textContent = "書き込み待機中です。タグを端末にかざしてください。";
+      const preWriteSnapshot = this.lastReadSnapshot;
 
       const writeResult = await this.nfcController.writeText(text);
       this.ui.writeResult.textContent =
@@ -182,22 +200,46 @@ export class Init {
 
       try {
         const verifyResult = await this.nfcController.readBackOnce();
-        const textRecords = verifyResult.records
-          .filter((record) => record.type === "text")
-          .map((record) => normalizeText(record.value));
-        const isVerified = textRecords.includes(normalizeText(text));
+        this.updateLastReadSnapshot("write_verify", verifyResult);
+
+        const expectedValue = normalizeText(text);
+        const comparableValues = extractComparableValues(verifyResult.records);
+        const isVerified = comparableValues.includes(expectedValue);
+        const serialChanged =
+          !!preWriteSnapshot?.serialNumber &&
+          preWriteSnapshot.serialNumber !== verifyResult.serialNumber;
 
         const verifySummary = {
           verified: isVerified,
-          expectedText: text,
-          detectedTextRecords: textRecords,
+          expectedText: expectedValue,
+          detectedComparableValues: comparableValues,
+          detectedRecords: verifyResult.records,
           verifyReadAt: verifyResult.readAt,
-          serialNumber: verifyResult.serialNumber
+          serialNumber: verifyResult.serialNumber,
+          previousSerialNumber: preWriteSnapshot?.serialNumber || null,
+          serialChanged
         };
 
-        this.ui.writeResult.textContent =
-          `書き込み成功\n${JSON.stringify(writeResult, null, 2)}\n\n` +
-          `読み取り確認: ${isVerified ? "OK" : "NG"}\n${JSON.stringify(verifySummary, null, 2)}`;
+        if (isVerified) {
+          this.ui.writeResult.textContent =
+            `書き込み成功\n${JSON.stringify(writeResult, null, 2)}\n\n` +
+            `読み取り確認: OK\n${JSON.stringify(verifySummary, null, 2)}`;
+        } else {
+          const reasons = [];
+          if (serialChanged) {
+            reasons.push("- 読み取り確認時のタグが別タグの可能性があります（serialNumberが変化）。");
+          }
+          if (comparableValues.length === 0) {
+            reasons.push("- 読み取れたレコードに比較可能な文字列がありません。タグ形式が想定外の可能性があります。");
+          }
+          reasons.push("- タグが書き込み不可（ロック済み/権限制約）の可能性があります。");
+          reasons.push("- 書き込み後に同じタグを十分近づけていない可能性があります。");
+
+          this.ui.writeResult.textContent =
+            `書き込み成功\n${JSON.stringify(writeResult, null, 2)}\n\n` +
+            `読み取り確認: NG\n${JSON.stringify(verifySummary, null, 2)}\n\n` +
+            `考えられる原因:\n${reasons.join("\n")}`;
+        }
         this.appendLog("write_verify", verifySummary);
       } catch (verifyError) {
         this.ui.writeResult.textContent =
