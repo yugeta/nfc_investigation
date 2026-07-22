@@ -14,6 +14,10 @@ function extractComparableValues(records) {
     .filter((value) => value.length > 0);
 }
 
+function normalizeUri(value) {
+  return String(value || "").trim();
+}
+
 export class Init {
   static instance;
 
@@ -41,6 +45,7 @@ export class Init {
     this.renderLogSummary(this.logStore.load());
     this.applyCompatibility();
     this.renderNfcState();
+    this.renderWriteMode();
   }
 
   bindEvents() {
@@ -60,6 +65,29 @@ export class Init {
     this.ui.writeButton.addEventListener("click", async () => {
       await this.handleWrite();
     });
+
+    this.ui.writeModeText.addEventListener("change", () => {
+      this.renderWriteMode();
+    });
+
+    this.ui.writeModeUri.addEventListener("change", () => {
+      this.renderWriteMode();
+    });
+  }
+
+  getSelectedWriteMode() {
+    return this.ui.writeModeUri.checked ? "uri" : "text";
+  }
+
+  renderWriteMode() {
+    const mode = this.getSelectedWriteMode();
+    const controlsBlocked = !this.isCompatible || this.isWriting || this.isScanning;
+
+    this.ui.writeModeText.disabled = controlsBlocked;
+    this.ui.writeModeUri.disabled = controlsBlocked;
+
+    this.ui.writeText.disabled = controlsBlocked || mode !== "text";
+    this.ui.writeUri.disabled = controlsBlocked || mode !== "uri";
   }
 
   applyCompatibility() {
@@ -83,30 +111,30 @@ export class Init {
     if (!this.isCompatible) {
       this.ui.startScanButton.disabled = true;
       this.ui.writeButton.disabled = true;
-      this.ui.writeText.disabled = true;
+      this.renderWriteMode();
       return;
     }
 
     if (this.isWriting) {
       this.ui.startScanButton.disabled = true;
       this.ui.writeButton.disabled = true;
-      this.ui.writeText.disabled = true;
       this.ui.startScanButton.textContent = "読み取り開始";
+      this.renderWriteMode();
       return;
     }
 
     if (this.isScanning) {
       this.ui.startScanButton.disabled = false;
       this.ui.writeButton.disabled = true;
-      this.ui.writeText.disabled = true;
       this.ui.startScanButton.textContent = "読み取り停止";
+      this.renderWriteMode();
       return;
     }
 
     this.ui.startScanButton.disabled = false;
     this.ui.writeButton.disabled = false;
-    this.ui.writeText.disabled = false;
     this.ui.startScanButton.textContent = "読み取り開始";
+    this.renderWriteMode();
   }
 
   renderLogSummary(logs) {
@@ -181,10 +209,28 @@ export class Init {
       this.ui.readResult.textContent = "書き込みのため、読み取りを停止しました。";
     }
 
+    const mode = this.getSelectedWriteMode();
     const text = this.ui.writeText.value.trim();
-    if (!text) {
+    const uri = this.ui.writeUri.value.trim();
+
+    if (mode === "text" && !text) {
       this.ui.writeResult.textContent = "書き込むテキストを入力してください。";
       return;
+    }
+
+    if (mode === "uri" && !uri) {
+      this.ui.writeResult.textContent = "書き込むURIを入力してください。";
+      return;
+    }
+
+    if (mode === "uri") {
+      try {
+        // URL constructor validates absolute URI format.
+        new URL(uri);
+      } catch (_) {
+        this.ui.writeResult.textContent = "URI形式が不正です。https://から始まる形式を入力してください。";
+        return;
+      }
     }
 
     try {
@@ -193,7 +239,9 @@ export class Init {
       this.ui.writeResult.textContent = "書き込み待機中です。タグを端末にかざしてください。";
       const preWriteSnapshot = this.lastReadSnapshot;
 
-      const writeResult = await this.nfcController.writeText(text);
+      const writeResult = mode === "text"
+        ? await this.nfcController.writeText(text)
+        : await this.nfcController.writeUri(uri);
       this.ui.writeResult.textContent =
         `書き込み成功\n${JSON.stringify(writeResult, null, 2)}\n\n読み取り確認中...`;
       this.appendLog("write", writeResult);
@@ -202,7 +250,7 @@ export class Init {
         const verifyResult = await this.nfcController.readBackOnce();
         this.updateLastReadSnapshot("write_verify", verifyResult);
 
-        const expectedValue = normalizeText(text);
+        const expectedValue = mode === "text" ? normalizeText(text) : normalizeUri(uri);
         const comparableValues = extractComparableValues(verifyResult.records);
         const isVerified = comparableValues.includes(expectedValue);
         const serialChanged =
@@ -211,7 +259,8 @@ export class Init {
 
         const verifySummary = {
           verified: isVerified,
-          expectedText: expectedValue,
+          expectedType: mode,
+          expectedValue,
           detectedComparableValues: comparableValues,
           detectedRecords: verifyResult.records,
           verifyReadAt: verifyResult.readAt,

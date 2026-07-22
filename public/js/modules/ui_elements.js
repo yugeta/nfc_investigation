@@ -13,7 +13,10 @@ export class UiElements {
     this.statusNdefApi = document.getElementById("statusNdefApi");
     this.startScanButton = document.getElementById("startScanButton");
     this.writeButton = document.getElementById("writeButton");
+    this.writeModeText = document.getElementById("writeModeText");
+    this.writeModeUri = document.getElementById("writeModeUri");
     this.writeText = document.getElementById("writeText");
+    this.writeUri = document.getElementById("writeUri");
     this.readResult = document.getElementById("readResult");
     this.writeResult = document.getElementById("writeResult");
     this.exportLogsButton = document.getElementById("exportLogsButton");

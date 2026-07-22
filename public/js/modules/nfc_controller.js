@@ -37,14 +37,27 @@ export class NfcController {
     this.scanAbortController = null;
   }
 
-  async writeText(text) {
+  async writeRecords(records) {
     const ndef = new NDEFReader();
-    await ndef.write({
-      records: [{ recordType: "text", data: text }]
-    });
+    await ndef.write({ records });
+  }
+
+  async writeText(text) {
+    await this.writeRecords([{ recordType: "text", data: text }]);
 
     return {
+      kind: "text",
       writtenText: text,
+      writtenAt: nowIso()
+    };
+  }
+
+  async writeUri(uri) {
+    await this.writeRecords([{ recordType: "url", data: uri }]);
+
+    return {
+      kind: "uri",
+      writtenUri: uri,
       writtenAt: nowIso()
     };
   }
