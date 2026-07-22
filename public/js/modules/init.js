@@ -45,7 +45,6 @@ export class Init {
     this.renderLogSummary(this.logStore.load());
     this.applyCompatibility();
     this.renderNfcState();
-    this.renderWriteMode();
   }
 
   bindEvents() {
@@ -65,29 +64,6 @@ export class Init {
     this.ui.writeButton.addEventListener("click", async () => {
       await this.handleWrite();
     });
-
-    this.ui.writeModeText.addEventListener("change", () => {
-      this.renderWriteMode();
-    });
-
-    this.ui.writeModeUri.addEventListener("change", () => {
-      this.renderWriteMode();
-    });
-  }
-
-  getSelectedWriteMode() {
-    return this.ui.writeModeUri.checked ? "uri" : "text";
-  }
-
-  renderWriteMode() {
-    const mode = this.getSelectedWriteMode();
-    const controlsBlocked = !this.isCompatible || this.isWriting || this.isScanning;
-
-    this.ui.writeModeText.disabled = controlsBlocked;
-    this.ui.writeModeUri.disabled = controlsBlocked;
-
-    this.ui.writeText.disabled = controlsBlocked || mode !== "text";
-    this.ui.writeUri.disabled = controlsBlocked || mode !== "uri";
   }
 
   applyCompatibility() {
@@ -111,7 +87,8 @@ export class Init {
     if (!this.isCompatible) {
       this.ui.startScanButton.disabled = true;
       this.ui.writeButton.disabled = true;
-      this.renderWriteMode();
+      this.ui.writeText.disabled = true;
+      this.ui.writeUri.disabled = true;
       return;
     }
 
@@ -119,7 +96,8 @@ export class Init {
       this.ui.startScanButton.disabled = true;
       this.ui.writeButton.disabled = true;
       this.ui.startScanButton.textContent = "読み取り開始";
-      this.renderWriteMode();
+      this.ui.writeText.disabled = true;
+      this.ui.writeUri.disabled = true;
       return;
     }
 
@@ -127,14 +105,16 @@ export class Init {
       this.ui.startScanButton.disabled = false;
       this.ui.writeButton.disabled = true;
       this.ui.startScanButton.textContent = "読み取り停止";
-      this.renderWriteMode();
+      this.ui.writeText.disabled = true;
+      this.ui.writeUri.disabled = true;
       return;
     }
 
     this.ui.startScanButton.disabled = false;
     this.ui.writeButton.disabled = false;
     this.ui.startScanButton.textContent = "読み取り開始";
-    this.renderWriteMode();
+    this.ui.writeText.disabled = false;
+    this.ui.writeUri.disabled = false;
   }
 
   renderLogSummary(logs) {
@@ -209,21 +189,15 @@ export class Init {
       this.ui.readResult.textContent = "書き込みのため、読み取りを停止しました。";
     }
 
-    const mode = this.getSelectedWriteMode();
-    const text = this.ui.writeText.value.trim();
-    const uri = this.ui.writeUri.value.trim();
+    const text = normalizeText(this.ui.writeText.value);
+    const uri = normalizeUri(this.ui.writeUri.value);
 
-    if (mode === "text" && !text) {
-      this.ui.writeResult.textContent = "書き込むテキストを入力してください。";
+    if (!text && !uri) {
+      this.ui.writeResult.textContent = "テキストまたはURIのどちらかを入力してください。";
       return;
     }
 
-    if (mode === "uri" && !uri) {
-      this.ui.writeResult.textContent = "書き込むURIを入力してください。";
-      return;
-    }
-
-    if (mode === "uri") {
+    if (uri) {
       try {
         // URL constructor validates absolute URI format.
         new URL(uri);
@@ -233,15 +207,27 @@ export class Init {
       }
     }
 
+    const records = [];
+    if (text) {
+      records.push({ recordType: "text", data: text });
+    }
+    if (uri) {
+      records.push({ recordType: "url", data: uri });
+    }
+
     try {
       this.isWriting = true;
       this.renderNfcState();
       this.ui.writeResult.textContent = "書き込み待機中です。タグを端末にかざしてください。";
       const preWriteSnapshot = this.lastReadSnapshot;
 
-      const writeResult = mode === "text"
-        ? await this.nfcController.writeText(text)
-        : await this.nfcController.writeUri(uri);
+      await this.nfcController.writeRecords(records);
+      const writeResult = {
+        recordCount: records.length,
+        writtenText: text || null,
+        writtenUri: uri || null,
+        writtenAt: new Date().toISOString()
+      };
       this.ui.writeResult.textContent =
         `書き込み成功\n${JSON.stringify(writeResult, null, 2)}\n\n読み取り確認中...`;
       this.appendLog("write", writeResult);
@@ -250,17 +236,16 @@ export class Init {
         const verifyResult = await this.nfcController.readBackOnce();
         this.updateLastReadSnapshot("write_verify", verifyResult);
 
-        const expectedValue = mode === "text" ? normalizeText(text) : normalizeUri(uri);
+        const expectedValues = [text, uri].filter((value) => value && value.length > 0);
         const comparableValues = extractComparableValues(verifyResult.records);
-        const isVerified = comparableValues.includes(expectedValue);
+        const isVerified = expectedValues.every((value) => comparableValues.includes(value));
         const serialChanged =
           !!preWriteSnapshot?.serialNumber &&
           preWriteSnapshot.serialNumber !== verifyResult.serialNumber;
 
         const verifySummary = {
           verified: isVerified,
-          expectedType: mode,
-          expectedValue,
+          expectedValues,
           detectedComparableValues: comparableValues,
           detectedRecords: verifyResult.records,
           verifyReadAt: verifyResult.readAt,

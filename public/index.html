@@ -29,15 +29,7 @@
 
     <section class="card">
       <h2>書き込み</h2>
-      <p class="hint">書き込み種別を選択してください。</p>
-      <label>
-        <input id="writeModeText" type="radio" name="writeMode" value="text" checked />
-        テキスト（NDEF Text）
-      </label>
-      <label>
-        <input id="writeModeUri" type="radio" name="writeMode" value="uri" />
-        URI（NDEF URI）
-      </label>
+      <p class="hint">テキストとURIはどちらか片方、または両方入力できます。</p>
       <label for="writeText">NDEFテキスト</label>
       <input id="writeText" type="text" placeholder="例: hello nfc" />
       <label for="writeUri">NDEF URI</label>
