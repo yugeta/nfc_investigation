@@ -4,7 +4,7 @@
 このPoCは、ブラウザのWeb NFC機能を使ってNFCタグの読み取り・書き込みを行い、結果をブラウザ内（localStorage）へ保存する構成です。
 
 システム構成:
-- フロントエンド: public/index.html, public/assets/app.js, public/css/style.css
+- フロントエンド: public/index.html, public/js/main.js, public/js/modules/*.js, public/css/style.css
 - スタイル分割: public/css/variables.css, public/css/base.css, public/css/layout.css, public/css/components.css, public/css/states.css
 - ログ保存先: localStorage（端末ブラウザ内）
 - 公開基盤: GitHub Pages（静的ホスティング）

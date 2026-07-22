@@ -15,7 +15,8 @@
 
 ## PoC実装
 - public/index.html: Web NFCフロント（読取/書込UI）
-- public/assets/app.js: Web NFC実装（読み取り、書き込み、ローカルログ保存）
+- public/js/main.js: エントリポイント（DOMContentLoaded後にMainを起動）
+- public/js/modules/*.js: 機能別モジュール（シングルトン構成）
 
 ## 推奨する次アクション
 1. 顧客と対象ユースケースおよび運用制約を確認する。

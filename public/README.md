@@ -4,7 +4,8 @@
 
 ## ファイル構成
 - index.html: 読取/書込UI
-- assets/app.js: Web NFC処理とローカルログ保存
+- js/main.js: エントリポイント（Main起動のみ）
+- js/modules/*.js: 互換性判定、NFC制御、ログ管理、UI制御
 - css/style.css: import専用のスタイルエントリ
 - css/*.css: 用途別に分割したスタイル群
 - localStorage: 読取/書込イベントをブラウザ内に保存
