@@ -8,10 +8,49 @@ const writeResult = document.getElementById("writeResult");
 const exportLogsButton = document.getElementById("exportLogsButton");
 const clearLogsButton = document.getElementById("clearLogsButton");
 const logSummary = document.getElementById("logSummary");
+const compatibilityError = document.getElementById("compatibilityError");
 const LOG_STORAGE_KEY = "nfc-poc-events-v1";
+const hasNdefReader = "NDEFReader" in window;
+const isSecure = window.isSecureContext;
 
-statusSecureContext.textContent = `Secure Context: ${window.isSecureContext ? "OK" : "NG"}`;
-statusNdefApi.textContent = `Web NFC API: ${"NDEFReader" in window ? "OK" : "NG"}`;
+statusSecureContext.textContent = `Secure Context: ${isSecure ? "OK" : "NG"}`;
+statusNdefApi.textContent = `Web NFC API: ${hasNdefReader ? "OK" : "NG"}`;
+
+function setNfcControlsDisabled(disabled) {
+  startScanButton.disabled = disabled;
+  writeButton.disabled = disabled;
+  writeText.disabled = disabled;
+}
+
+function showCompatibilityError(message) {
+  compatibilityError.hidden = false;
+  compatibilityError.textContent = message;
+}
+
+function checkCompatibility() {
+  if (!isSecure && !hasNdefReader) {
+    setNfcControlsDisabled(true);
+    showCompatibilityError("この環境はWeb NFC未対応です。HTTPS配信のAndroid対応ブラウザでアクセスしてください。");
+    return false;
+  }
+
+  if (!isSecure) {
+    setNfcControlsDisabled(true);
+    showCompatibilityError("Secure Contextではありません。HTTPSまたはlocalhostでアクセスしてください。");
+    return false;
+  }
+
+  if (!hasNdefReader) {
+    setNfcControlsDisabled(true);
+    showCompatibilityError("このブラウザはWeb NFCに未対応です。Androidの対応ブラウザを利用してください。");
+    return false;
+  }
+
+  compatibilityError.hidden = true;
+  compatibilityError.textContent = "";
+  setNfcControlsDisabled(false);
+  return true;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -82,6 +121,7 @@ function clearLogs() {
 exportLogsButton.addEventListener("click", exportLogs);
 clearLogsButton.addEventListener("click", clearLogs);
 saveLogs(loadLogs());
+checkCompatibility();
 
 startScanButton.addEventListener("click", async () => {
   if (!("NDEFReader" in window)) {
