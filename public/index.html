@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NFC Web PoC</title>
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>NFC Web PoC</h1>
+    <p class="lead">ブラウザでNFCタグの読み取り・書き込みを試験します（Web NFC対応端末のみ）。</p>
+
+    <section class="card">
+      <h2>環境チェック</h2>
+      <ul>
+        <li id="statusSecureContext">Secure Context: checking...</li>
+        <li id="statusNdefApi">Web NFC API: checking...</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>読み取り</h2>
+      <button id="startScanButton">読み取り開始</button>
+      <p class="hint">開始後にタグをかざしてください。</p>
+      <pre id="readResult">まだ読み取り結果はありません。</pre>
+    </section>
+
+    <section class="card">
+      <h2>書き込み</h2>
+      <label for="writeText">NDEFテキスト</label>
+      <input id="writeText" type="text" placeholder="例: hello nfc" />
+      <button id="writeButton">書き込み実行</button>
+      <pre id="writeResult">まだ書き込み結果はありません。</pre>
+    </section>
+
+    <section class="card">
+      <h2>補足</h2>
+      <ul>
+        <li>このPoCは主にNDEFタグ向けです。</li>
+        <li>マイナンバーカードなどの機密領域はブラウザから直接扱えません。</li>
+        <li>iOS Safariは現時点でWeb NFC未対応です。</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>
