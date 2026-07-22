@@ -5,7 +5,8 @@
 ## ファイル構成
 - index.html: 読取/書込UI
 - assets/app.js: Web NFC処理とローカルログ保存
-- assets/style.css: 画面スタイル
+- css/style.css: import専用のスタイルエントリ
+- css/*.css: 用途別に分割したスタイル群
 - localStorage: 読取/書込イベントをブラウザ内に保存
 
 ## 公開手順（GitHub Pages）
