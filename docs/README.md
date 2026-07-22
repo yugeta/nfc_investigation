@@ -13,6 +13,8 @@
 ## 02-design（方式設計）
 - 02-design/android-nfc-system-design.md
   - NFC実装方式、API、データ、セキュリティの設計方針
+- 02-design/ntag213-lock-operation-design.md
+  - NTAG213のロック運用設計（開発から量産への移行手順）
 
 ## 03-poc（PoC実行）
 - 03-poc/development-procedure.md

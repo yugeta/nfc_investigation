@@ -6,8 +6,9 @@
 - docs/README.md: フェイズ別ドキュメント目次
 - docs/01-planning/rd-preparation-plan.md: 研究開発の全体準備計画
 - docs/01-planning/platform-card-test-matrix.md: できること/できないこと、端末・カード別検証方針
-- docs/01-planning/nfc-tag-characteristics.md: NFCタグ特性（書込可否、ロック、代替運用）の共有資料
+- docs/01-planning/nfc-tag-characteristics.md: NFCタグ特性（書込可否、ロック、URL起動制約、代替運用）の共有資料
 - docs/02-design/android-nfc-system-design.md: システム構成と実装方針
+- docs/02-design/ntag213-lock-operation-design.md: NTAG213ロック運用設計（開発→量産）
 - docs/03-poc/development-procedure.md: ブラウザ向けPoCの開発手順
 - docs/03-poc/web-nfc-operation-guide.md: システム内容、使い方、注意点の運用ガイド
 - docs/03-poc/poc-schedule-and-budget.md: PoCのスケジュール、体制、概算コストモデル
