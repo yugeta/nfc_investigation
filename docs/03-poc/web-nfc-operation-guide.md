@@ -1,18 +1,17 @@
-# Web NFC + PHP PoC 運用ガイド
+# Web NFC PoC 運用ガイド
 
 ## 1. このシステムの概要
-このPoCは、ブラウザのWeb NFC機能を使ってNFCタグの読み取り・書き込みを行い、結果をPHP APIへ送信してログ保存する構成です。
+このPoCは、ブラウザのWeb NFC機能を使ってNFCタグの読み取り・書き込みを行い、結果をブラウザ内（localStorage）へ保存する構成です。
 
 システム構成:
 - フロントエンド: public/index.html, public/assets/app.js, public/assets/style.css
-- API: public/api/log_scan.php
-- ログ保存先: public/storage/scan-events.ndjson（実行時作成）
-- 実行基盤: Docker Compose（PHP 8.3 CLI）
+- ログ保存先: localStorage（端末ブラウザ内）
+- 公開基盤: GitHub Pages（静的ホスティング）
 
 ## 2. できること
 - NDEFタグの読み取り
 - NDEFテキスト書き込み
-- 読み取り/書き込みイベントのサーバーログ保存
+- 読み取り/書き込みイベントのローカルログ保存
 - Web NFC対応可否の画面表示
 
 ## 3. できないこと・制約
@@ -22,16 +21,14 @@
 - カード発行元が制限する領域へのアクセス
 
 ## 4. 前提条件
-- Docker / Docker Compose が利用できること
 - Android端末でNFCが有効化されていること
 - Web NFC対応ブラウザ（主にAndroid Chrome系）を使うこと
-- 実機アクセスできるネットワークでPCと端末が接続されていること
+- GitHub Pagesの公開URLへアクセスできること
 
-## 5. 起動手順
-1. プロジェクトルートでサーバーを起動する。
-2. `docker compose up --build`
-3. Android端末ブラウザで `http://<PCのIP>:8000` を開く。
-4. 終了時は `docker compose down` を実行する。
+## 5. 公開手順
+1. GitHubリポジトリの `Settings > Pages` を開く。
+2. `Deploy from a branch` を選択し、`main` / `public` を設定する。
+3. 公開URL（HTTPS）をAndroid端末ブラウザで開く。
 
 ## 6. 使い方
 
@@ -39,18 +36,18 @@
 1. 画面の「読み取り開始」を押す。
 2. タグをかざす。
 3. 結果欄に serialNumber、records、readAt が表示される。
-4. 同時に read イベントがAPIへ送信される。
+4. 同時に read イベントがlocalStorageへ保存される。
 
 ### 6.2 書き込み
 1. 「NDEFテキスト」に任意文字列を入力する。
 2. 「書き込み実行」を押す。
 3. 成功時に書き込み結果が表示される。
-4. 同時に write イベントがAPIへ送信される。
+4. 同時に write イベントがlocalStorageへ保存される。
 
 ### 6.3 ログ確認
-- 保存先: public/storage/scan-events.ndjson
-- 1行1イベントのJSON（NDJSON）形式
-- 主な項目: serverTime, ip, userAgent, eventType, payload, clientTime
+- 保存先: ブラウザのlocalStorage
+- 画面の「ログをJSONで保存」で取得
+- 主な項目: eventType, payload, clientTime
 
 ## 7. 媒体別の運用注意
 - 購入済みNFCタグ:
@@ -71,11 +68,11 @@
 - Web NFC未対応ブラウザ:
   - 画面に「Web NFC API: NG」と表示される。
 - セキュアコンテキスト要件:
-  - 環境によりHTTPSまたはlocalhost条件が必要。
+  - Web NFCはHTTPSまたはlocalhost条件が必要（GitHub PagesはHTTPS）。
 - 書き込み失敗:
   - タグが読み取り専用、容量不足、NDEF未対応の可能性。
 - ログが残らない:
-  - public/storage への書き込み権限を確認する。
+  - ブラウザのストレージ削除設定、プライベートモード利用有無を確認する。
 
 ## 10. 参考
 - 開発手順: docs/03-poc/development-procedure.md

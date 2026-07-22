@@ -5,6 +5,10 @@ const writeButton = document.getElementById("writeButton");
 const writeText = document.getElementById("writeText");
 const readResult = document.getElementById("readResult");
 const writeResult = document.getElementById("writeResult");
+const exportLogsButton = document.getElementById("exportLogsButton");
+const clearLogsButton = document.getElementById("clearLogsButton");
+const logSummary = document.getElementById("logSummary");
+const LOG_STORAGE_KEY = "nfc-poc-events-v1";
 
 statusSecureContext.textContent = `Secure Context: ${window.isSecureContext ? "OK" : "NG"}`;
 statusNdefApi.textContent = `Web NFC API: ${"NDEFReader" in window ? "OK" : "NG"}`;
@@ -13,11 +17,33 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function toHex(arrayBuffer) {
-  return Array.from(new Uint8Array(arrayBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase();
+function loadLogs() {
+  const raw = localStorage.getItem(LOG_STORAGE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveLogs(logs) {
+  localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
+  logSummary.textContent = `ログ件数: ${logs.length}`;
+}
+
+function appendLog(eventType, payload) {
+  const logs = loadLogs();
+  logs.push({
+    eventType,
+    payload,
+    clientTime: nowIso()
+  });
+  saveLogs(logs);
 }
 
 function parseRecord(record) {
@@ -36,23 +62,26 @@ function parseRecord(record) {
   return { type: record.recordType, value: "(unsupported preview)" };
 }
 
-async function saveLog(eventType, payload) {
-  try {
-    await fetch("./api/log_scan.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        eventType,
-        payload,
-        clientTime: nowIso()
-      })
-    });
-  } catch (_) {
-    // Logging failure should not block the PoC flow.
-  }
+function exportLogs() {
+  const logs = loadLogs();
+  const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `nfc-poc-logs-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
+
+function clearLogs() {
+  saveLogs([]);
+}
+
+exportLogsButton.addEventListener("click", exportLogs);
+clearLogsButton.addEventListener("click", clearLogs);
+saveLogs(loadLogs());
 
 startScanButton.addEventListener("click", async () => {
   if (!("NDEFReader" in window)) {
@@ -69,7 +98,7 @@ startScanButton.addEventListener("click", async () => {
       readResult.textContent = "タグは検出されましたが、読み取りに失敗しました。";
     };
 
-    ndef.onreading = async (event) => {
+    ndef.onreading = (event) => {
       const serialNumber = event.serialNumber || "(not available)";
       const records = [];
 
@@ -84,7 +113,7 @@ startScanButton.addEventListener("click", async () => {
       };
 
       readResult.textContent = JSON.stringify(result, null, 2);
-      await saveLog("read", result);
+      appendLog("read", result);
     };
   } catch (error) {
     readResult.textContent = `読み取り開始エラー: ${error.message}`;
@@ -115,7 +144,7 @@ writeButton.addEventListener("click", async () => {
     };
 
     writeResult.textContent = `書き込み成功\n${JSON.stringify(result, null, 2)}`;
-    await saveLog("write", result);
+    appendLog("write", result);
   } catch (error) {
     writeResult.textContent = `書き込みエラー: ${error.message}`;
   }

@@ -1,6 +1,6 @@
 # ドキュメント構成（フェイズ別）
 
-このディレクトリは、ブラウザ（JavaScript/Web NFC）+ PHP を中心としたNFCタグ認識システムの研究開発資料をフェイズ別に整理しています。
+このディレクトリは、ブラウザ（JavaScript/Web NFC）中心のNFCタグ認識システム研究開発資料をフェイズ別に整理しています。
 
 ## 01-planning（企画・要件定義）
 - 01-planning/rd-preparation-plan.md
@@ -15,7 +15,7 @@
 ## 03-poc（PoC実行）
 - 03-poc/development-procedure.md
   - 実装開始からPoC完了までの手順書
-- 03-poc/web-nfc-php-operation-guide.md
+- 03-poc/web-nfc-operation-guide.md
   - システム内容、使い方、注意点をまとめた運用ガイド
 - 03-poc/poc-schedule-and-budget.md
   - 6週間の進行計画と概算予算モデル

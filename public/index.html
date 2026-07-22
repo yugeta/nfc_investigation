@@ -35,11 +35,20 @@
     </section>
 
     <section class="card">
+      <h2>ローカルログ</h2>
+      <p class="hint">読み取り/書き込みイベントはブラウザ内（localStorage）に保存されます。</p>
+      <button id="exportLogsButton">ログをJSONで保存</button>
+      <button id="clearLogsButton">ログをクリア</button>
+      <pre id="logSummary">ログ件数: 0</pre>
+    </section>
+
+    <section class="card">
       <h2>補足</h2>
       <ul>
         <li>このPoCは主にNDEFタグ向けです。</li>
         <li>マイナンバーカードなどの機密領域はブラウザから直接扱えません。</li>
         <li>iOS Safariは現時点でWeb NFC未対応です。</li>
+        <li>GitHub Pages向けに、サーバーサイド実装なしで動作します。</li>
       </ul>
     </section>
   </main>
