@@ -4,6 +4,10 @@ import { NfcController } from "./nfc_controller.js";
 import { formatNfcError } from "./nfc_utils.js";
 import { UiElements } from "./ui_elements.js";
 
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
 export class Init {
   static instance;
 
@@ -180,8 +184,8 @@ export class Init {
         const verifyResult = await this.nfcController.readBackOnce();
         const textRecords = verifyResult.records
           .filter((record) => record.type === "text")
-          .map((record) => record.value);
-        const isVerified = textRecords.includes(text);
+          .map((record) => normalizeText(record.value));
+        const isVerified = textRecords.includes(normalizeText(text));
 
         const verifySummary = {
           verified: isVerified,

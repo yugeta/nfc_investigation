@@ -2,17 +2,50 @@ export function nowIso() {
   return new Date().toISOString();
 }
 
+function decodeDataView(dataView, encoding = "utf-8") {
+  const bytes = dataView.buffer.slice(dataView.byteOffset, dataView.byteOffset + dataView.byteLength);
+  return new TextDecoder(encoding).decode(bytes);
+}
+
+function decodeRecordValue(record) {
+  const data = record.data;
+
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (data instanceof DataView) {
+    return decodeDataView(data, record.encoding || "utf-8");
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return new TextDecoder(record.encoding || "utf-8").decode(data);
+  }
+
+  return "";
+}
+
 export function parseRecord(record) {
   if (record.recordType === "text") {
-    return { type: "text", value: record.data };
+    return {
+      type: "text",
+      value: decodeRecordValue(record),
+      lang: record.lang || "",
+      encoding: record.encoding || "utf-8"
+    };
   }
 
   if (record.recordType === "url") {
-    return { type: "url", value: record.data };
+    return { type: "url", value: decodeRecordValue(record) };
   }
 
   if (record.recordType === "mime") {
-    return { type: `mime:${record.mediaType}`, value: "(binary or custom payload)" };
+    const isTextLike = typeof record.mediaType === "string" && record.mediaType.startsWith("text/");
+    return {
+      type: `mime:${record.mediaType}`,
+      value: isTextLike ? decodeRecordValue(record) : "(binary or custom payload)",
+      byteLength: record.data?.byteLength || 0
+    };
   }
 
   return { type: record.recordType, value: "(unsupported preview)" };
