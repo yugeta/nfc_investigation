@@ -1,4 +1,5 @@
-import { showReadErrorMessage, showReadJson } from "./read_result_view.js";
+import { runScanStartFlow } from "./scan_start_flow.js";
+import { buildScanToggleRequest } from "./scan_toggle_request_builder.js";
 
 export class ScanFlow {
   constructor({ ui, nfcController, state, ensureCompatibilityFor, renderNfcState, formatNfcError, onReadResult }) {
@@ -18,32 +19,29 @@ export class ScanFlow {
   }
 
   async handleToggle() {
-    if (!this.ensureCompatibilityFor(this.ui.readResult)) {
+    const request = buildScanToggleRequest({
+      ui: this.ui,
+      state: this.state,
+      ensureCompatibilityFor: this.ensureCompatibilityFor
+    });
+
+    if (!request.ok) {
       return;
     }
 
-    if (this.state.isScanning) {
+    if (request.action === "stop") {
       this.stop();
       return;
     }
 
-    try {
-      await this.nfcController.startScan(
-        (result) => {
-          showReadJson(this.ui, result);
-          this.state.updateLastReadSnapshot("read", result);
-          this.onReadResult(result);
-        },
-        (error) => {
-          showReadErrorMessage(this.ui, error.message);
-        }
-      );
-
-      this.state.setScanning(true);
-      this.renderNfcState();
-    } catch (error) {
-      showReadErrorMessage(this.ui, this.formatNfcError(error, "読み取り"));
-      this.stop();
-    }
+    await runScanStartFlow({
+      ui: this.ui,
+      nfcController: this.nfcController,
+      state: this.state,
+      renderNfcState: this.renderNfcState,
+      formatNfcError: this.formatNfcError,
+      stop: () => this.stop(),
+      onReadResult: this.onReadResult
+    });
   }
 }
